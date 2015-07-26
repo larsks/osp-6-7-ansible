@@ -253,6 +253,15 @@
     - name: ensure mariadb is accepting connections
       shell: |
         timeout 600 sh -c 'until mysql -e "select 1"; do sleep 1; done'
+    - name: ensure correct permissions on log files
+      file: path=/var/log/{{item}}
+            recurse=yes
+            owner={{item}}
+            group={{item}}
+      with_items:
+        - nova
+        - heat
+        - cinder
 
 # ## Update OpenStack database schemas
 #
