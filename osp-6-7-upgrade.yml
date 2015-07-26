@@ -247,9 +247,9 @@
         cut -f2 -d'"' |
         xargs -n1 pcs resource enable
     - name: start haproxy resource
-      command: pcs resource enable haproxy-clone --wait={{enable_wait}}
+      command: pcs resource enable haproxy-clone --wait={{enable_wait|default('300')}}
     - name: start mariadb galera resource
-      command: pcs resource enable galera-master --wait={{enable_wait}}
+      command: pcs resource enable galera-master --wait={{enable_wait|default('300')}}
     - name: ensure mariadb is accepting connections
       shell: |
         timeout 600 sh -c 'until mysql -e "select 1"; do sleep 1; done'
