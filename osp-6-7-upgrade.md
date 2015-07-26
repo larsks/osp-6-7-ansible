@@ -40,6 +40,12 @@ You can also *skip* specific sections of the playbook using the
 
     ansible-playbook osp-6-7-upgrade.yml --skip-tags pre-check
 
+**WARNING** Please review the [Kilo release notes][] for
+information about configuration and functional changes between Juno
+and Kilo.
+
+[Kilo release notes]: https://wiki.openstack.org/wiki/ReleaseNotes/Kilo
+
 ## Make sure cluster state is valid
 
 This play ensures that all your Pacemaker managed resources are active.  If
@@ -171,6 +177,11 @@ This task makes the necessary changes in your keystone.conf.
 
 - <http://bugzilla.redhat.com/1246560>
 
+This is documented in the [Keystone Upgrade Notes][] of the Kilo
+release notes.
+
+[keystone upgrade notes]: # https://wiki.openstack.org/wiki/ReleaseNotes/Kilo#Upgrade_Notes_5
+
 
 
 <!-- break -->
@@ -235,6 +246,25 @@ installed.
         - name: "BZ 1246638: novncproxy requires upgraded websockify"
           yum: name=python-websockify state=latest
     
+## Update Neutron rootwrap configuration
+
+According to the [Kilo release notes][], the rootwrap `dhcp.filter`
+configuration needs to be edited after upgrading from earlier
+releases.
+
+- <https://wiki.openstack.org/wiki/ReleaseNotes/Kilo#Upgrade_Notes_6>
+
+
+<!-- break -->
+
+    - hosts: controller[0]
+      tasks:
+        - name: fix neutron dnsmasq rootwrap filter
+          command: >
+            sed -i '{{item}}' /usr/share/neutron/rootwrap/dhcp.filters
+          with_items:
+            - '/^dnsmasq:/ s/: .*/: CommandFilter, dnsmasq, root/'
+    
 ## Enable galera
 
 This play enables the `galera-master` resource and its requirements
@@ -257,12 +287,21 @@ will be accessible where services expect to find it.
             cut -f2 -d'"' |
             xargs -n1 pcs resource enable
         - name: start haproxy resource
-          command: pcs resource enable haproxy-clone --wait={{enable_wait}}
+          command: pcs resource enable haproxy-clone --wait={{enable_wait|default('300')}}
         - name: start mariadb galera resource
-          command: pcs resource enable galera-master --wait={{enable_wait}}
+          command: pcs resource enable galera-master --wait={{enable_wait|default('300')}}
         - name: ensure mariadb is accepting connections
           shell: |
             timeout 600 sh -c 'until mysql -e "select 1"; do sleep 1; done'
+        - name: ensure correct permissions on log files
+          file: path=/var/log/{{item}}
+                recurse=yes
+                owner={{item}}
+                group={{item}}
+          with_items:
+            - nova
+            - heat
+            - cinder
     
 ## Update OpenStack database schemas
 
@@ -277,6 +316,8 @@ upgrades on all of our OpenStack services.
       tags:
         - database
       tasks:
+        - name: enforce unique instand uuid in data model
+          command: runuser -u nova -- nova-manage db null_instance_uuid_scan --delete
         - name: update openstack database schemas
           command: openstack-db --service {{item}} --update
           with_items:
@@ -286,6 +327,28 @@ upgrades on all of our OpenStack services.
             - nova
             - neutron
             - heat
+    
+    
+## Migrate nova flavor information
+
+According to the [Kilo release notes][], "After fully upgrading to
+kilo...you should start a background migration of flavor information
+from its old home to its new home." "Use 'nova-manage
+migrate-flavor-data' to perform this transition."
+
+
+
+<!-- break -->
+
+    - hosts: controller[0]
+      tags:
+        - database
+        - nova-migrate-flavor
+      tasks:
+        - name: migrate nova flavor data
+          command: >
+            runuser -u nova -- nova-manage db
+            migrate_flavor_data {{migrate_flavor_max_instance|default('100')}}
     
 ## Re-enable resources on the controllers
 
