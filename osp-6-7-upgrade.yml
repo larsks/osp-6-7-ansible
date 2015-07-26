@@ -40,6 +40,12 @@
 #
 #     ansible-playbook osp-6-7-upgrade.yml --skip-tags pre-check
 #
+# **WARNING** Please review the [Kilo release notes][] for
+# information about configuration and functional changes between Juno
+# and Kilo.
+#
+# [Kilo release notes]: https://wiki.openstack.org/wiki/ReleaseNotes/Kilo
+#
 # ## Make sure cluster state is valid
 #
 # This play ensures that all your Pacemaker managed resources are active.  If
@@ -150,6 +156,11 @@
 # This task makes the necessary changes in your keystone.conf.
 #
 # - <http://bugzilla.redhat.com/1246560>
+#
+# This is documented in the [Keystone Upgrade Notes][] of the Kilo
+# release notes.
+#
+# [keystone upgrade notes]: # https://wiki.openstack.org/wiki/ReleaseNotes/Kilo#Upgrade_Notes_5
 #
 - hosts: controller
   tags:
