@@ -2,6 +2,10 @@
 # title: Upgrading RHEL-OSP 6 to RHEL-OSP 7
 # ---
 #
+# (This documentation was generated automatically from [osp-6-7-upgrade.yml][].)
+#
+# [osp-6-7-upgrade.yml]: osp-6-7-upgrade.yml
+#
 # # Upgrading RHEL-OSP 6 to RHEL-OSP 7
 #
 # This is an [Ansible][] playbook that will upgrade a RHEL-OSP 6 HA environment to
