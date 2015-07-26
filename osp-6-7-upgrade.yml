@@ -214,6 +214,21 @@
     - name: "BZ 1246638: novncproxy requires upgraded websockify"
       yum: name=python-websockify state=latest
 
+# ## Update Neutron rootwrap configuration
+#
+# According to the [Kilo release notes][], the rootwrap `dhcp.filter`
+# configuration needs to be edited after upgrading from earlier
+# releases.
+#
+# - <https://wiki.openstack.org/wiki/ReleaseNotes/Kilo#Upgrade_Notes_6>
+- hosts: controller[0]
+  tasks:
+    - name: fix neutron dnsmasq rootwrap filter
+      command: >
+        sed -i '{{item}}' /usr/share/neutron/rootwrap/dhcp.filters
+      with_items:
+        - '/^dnsmasq:/ s/: .*/: CommandFilter, dnsmasq, root/'
+
 # ## Enable galera
 #
 # This play enables the `galera-master` resource and its requirements
