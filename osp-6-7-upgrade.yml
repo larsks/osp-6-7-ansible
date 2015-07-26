@@ -272,6 +272,8 @@
   tags:
     - database
   tasks:
+    - name: enforce unique instand uuid in data model
+      command: runuser -u nova -- nova-manage db null_instance_uuid_scan --delete
     - name: update openstack database schemas
       command: openstack-db --service {{item}} --update
       with_items:
@@ -281,6 +283,24 @@
         - nova
         - neutron
         - heat
+
+
+# ## Migrate nova flavor information
+#
+# According to the [Kilo release notes][], "After fully upgrading to
+# kilo...you should start a background migration of flavor information
+# from its old home to its new home." "Use 'nova-manage
+# migrate-flavor-data' to perform this transition."
+#
+- hosts: controller[0]
+  tags:
+    - database
+    - nova-migrate-flavor
+  tasks:
+    - name: migrate nova flavor data
+      command: >
+        runuser -u nova -- nova-manage db
+        migrate_flavor_data {{migrate_flavor_max_instance|default('100')}}
 
 # ## Re-enable resources on the controllers
 #
