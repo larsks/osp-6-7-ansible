@@ -9,7 +9,7 @@
 awk '
 	/^#!/ {next}
 
-	# Do not start generating output until we found our first
+	# Do not start generating output until we find our first
 	# non-blank line (this prevents us from generating an
 	# erroneous chunk of literal empty lines at the top of the
 	# document).
@@ -26,7 +26,7 @@ awk '
 
 	# When we transition from documentation to code, we need to
 	# generate an explicit break to prevent the code from becoming
-	# part of an preceeding list.
+	# part of a preceeding list.
 	!/^# ?/ && last_was_doc==1 {
 		printf "\n\n<!-- break -->\n\n"
 		last_was_doc=0

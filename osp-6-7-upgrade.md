@@ -6,7 +6,11 @@ title: Upgrading RHEL-OSP 6 to RHEL-OSP 7
 
 [osp-6-7-upgrade.yml]: osp-6-7-upgrade.yml
 
-# Upgrading RHEL-OSP 6 to RHEL-OSP 7
+# Overview
+
+**NB** Please review the [Kilo release notes][] for
+information about configuration and functional changes between Juno
+and Kilo.
 
 This is an [Ansible][] playbook that will upgrade a RHEL-OSP 6 HA environment to
 RHEL-OSP 7.  Your OpenStack environment will be unavailable for the duration
@@ -40,11 +44,42 @@ You can also *skip* specific sections of the playbook using the
 
     ansible-playbook osp-6-7-upgrade.yml --skip-tags pre-check
 
-**WARNING** Please review the [Kilo release notes][] for
-information about configuration and functional changes between Juno
-and Kilo.
-
 [Kilo release notes]: https://wiki.openstack.org/wiki/ReleaseNotes/Kilo
+
+## Things that can go wrong
+
+### Database connection failures
+
+Occasionally, a schema upgrade will fail with an error along the lines of:
+
+    TRACE keystone DBConnectionError: (_mysql_exceptions.OperationalError) 
+    (2013, 'Lost connection to MySQL server during query')
+    [SQL: u'UPDATE migrate_version SET version=%s WHERE migrate_version.version = %s
+    AND migrate_version.repository_id = %s'] [parameters: (1, 0, 'oauth1')]
+
+You may be able to resolve this by re-running the `database` play
+(and subsequent plays):
+
+    ansible-playbook osp-6-7-upgrade.yml -t database,post-database
+
+If subsequent schema updates fail because the database is in an
+indeterminate state, you will need to restore the database from your
+backups first and then re-run the schema upgrade process.
+
+### Failure to start services
+
+Pacemaker will sometimes fail to restart a service.  You can
+generally correct this situation by running...
+
+    pcs resource clean <name>
+
+...for the resource that has not started correctly.
+
+
+<!-- break -->
+
+    
+# Upgrade process
 
 ## Make sure cluster state is valid
 
@@ -265,11 +300,13 @@ releases.
           with_items:
             - '/^dnsmasq:/ s/: .*/: CommandFilter, dnsmasq, root/'
     
-## Enable galera
+## Enable haproxy and vip resources
 
-This play enables the `galera-master` resource and its requirements
-(i.e., `haproxy` and all the vip resources) so that the database
-will be accessible where services expect to find it.
+The schema upgrade process will attempt to contact the database
+server at the address specified in the OpenStack service
+configuration files, which is going to point at the vip address
+maintained by haproxy.  This play starts haproxy and the vip
+resources.
 
 
 
@@ -278,6 +315,7 @@ will be accessible where services expect to find it.
     - hosts: controller[0]
       tags:
         - pre-database
+        - haproxy
       tasks:
         - name: start vip resources
           shell: |
@@ -288,11 +326,47 @@ will be accessible where services expect to find it.
             xargs -n1 pcs resource enable
         - name: start haproxy resource
           command: pcs resource enable haproxy-clone --wait={{enable_wait|default('300')}}
+    
+## Enable MariaDB Galera
+
+Now that our VIPs are up and running, start the mariadb galera
+resource.  We verify that the local database is at least up and
+responding to queries before we continue.
+
+
+
+<!-- break -->
+
+    - hosts: controller[0]
+      tags:
+        - pre-database
+        - galera
+      tasks:
         - name: start mariadb galera resource
           command: pcs resource enable galera-master --wait={{enable_wait|default('300')}}
         - name: ensure mariadb is accepting connections
           shell: |
             timeout 600 sh -c 'until mysql -e "select 1"; do sleep 1; done'
+    
+## Ensure correct permisisons on logfiles
+
+If an administrator runs one of the `<service>-manage` commands as
+root, this can sometimes result in a log file
+(`/var/log/<service>/<service>-manage.log`) with root-only
+permissions, which can cause the schema upgrades to fail because the
+command is unable to write to the log file.
+
+This play ensures that log files have appropriate ownership.
+
+
+
+<!-- break -->
+
+    - hosts: controller[0]
+      tags:
+        - pre-database
+        - permissions
+      tasks:
         - name: ensure correct permissions on log files
           file: path=/var/log/{{item}}
                 recurse=yes
@@ -361,6 +435,7 @@ them all to start before continuining.
 
     - hosts: controller[0]
       tags:
+        - post-database
         - enable
       tasks:
         - name: enable all resources
@@ -387,8 +462,8 @@ This play will start all OpenStack services on the compute nodes.
 
     - hosts: compute
       tags:
+        - post-database
         - enable
       tasks:
         - name: "compute: start openstack services"
           command: openstack-service start
-    
