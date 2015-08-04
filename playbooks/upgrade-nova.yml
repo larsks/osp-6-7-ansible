@@ -1,0 +1,111 @@
+- hosts: controller[0]
+  tags:
+    - disable
+    - disable-nova
+  tasks:
+    - name: disable nova services
+      shell: >
+        pcs status xml |
+        xmllint --xpath '/crm_mon/resources/*[starts-with(@id, "openstack-nova")]/@id' -  |
+        tr ' ' '\n' |
+        cut -f2 -d'"' |
+        xargs -n1 pcs resource disable
+    - name: wait for nova services to stop
+      shell: >
+        while pcs status xml |
+            xmllint --xpath '//resource[starts-with(@id, "openstack-nova") and @role = "Started"]' -; do
+          sleep 1
+        done
+
+- hosts: controller
+  tags:
+    - packages
+  tasks:
+    - yum: name={{item}} state=latest
+      with_items:
+        - openstack-selinux
+        - openstack-nova*
+        - python-nova*
+
+# ### BZ 1246638: novncproxy requires upgraded websockify
+#
+# The novncproxy service in OSP-7 requires at least version 0.6.0 of
+# the python-websockify package, but does not specify this requirement
+# as a package dependency.
+#
+# This task ensures that a functional version of python-websockify is
+# installed.
+#
+# - <http://bugzilla.redhat.com/1246638>
+#
+- hosts: controller
+  tags:
+    - nova
+    - bugfix
+    - bz1246638
+    - packages
+  tasks:
+    - name: "BZ 1246638: novncproxy requires upgraded websockify"
+      yum: name=python-websockify state=latest
+
+- hosts: controller
+  tags:
+    - packages
+  tasks:
+    - name: reload systemd for any changed unit files
+      command: systemctl daemon-reload
+
+- hosts: controller[0]
+  tags:
+    - database
+  tasks:
+    - command: >
+        openstack-db --service nova --update
+
+# ## Migrate nova flavor information
+#
+# According to the [Kilo release notes][], "After fully upgrading to
+# kilo...you should start a background migration of flavor information
+# from its old home to its new home." "Use 'nova-manage
+# migrate-flavor-data' to perform this transition."
+#
+- hosts: controller[0]
+  tags:
+    - database
+    - nova-migrate-flavor
+  tasks:
+    - name: migrate nova flavor data
+      command: >
+        runuser -u nova -- nova-manage db
+        migrate_flavor_data {{migrate_flavor_max_instance|default('100')}}
+
+
+- hosts: controller
+  tags:
+    - config
+    - config-nova
+  tasks:
+    - name: set api caps on controller
+      command: >
+        crudini --set /etc/nova/nova.conf upgrade_levels {{item}} juno
+      with_items:
+        - compute
+
+- hosts: controller[0]
+  tags:
+    - enable
+    - enable-nova
+  tasks:
+    - name: enable nova services
+      shell: >
+        pcs status xml |
+        xmllint --xpath '/crm_mon/resources/*[starts-with(@id, "openstack-nova")]/@id' -  |
+        tr ' ' '\n' |
+        cut -f2 -d'"' |
+        xargs -n1 pcs resource enable
+    - name: wait for nova services to start
+      shell: >
+        while pcs status xml |
+            xmllint --xpath '//resource[starts-with(@id, "openstack-nova") and @role = "Stopped"]' -; do
+          sleep 1
+        done

@@ -1,0 +1,98 @@
+- hosts: controller[0]
+  tags:
+    - disable
+    - disable-neutron
+  tasks:
+    - name: disable neutron services
+      shell: >
+        pcs status xml |
+        xmllint --xpath '/crm_mon/resources/*[starts-with(@id, "neutron")]/@id' -  |
+        tr ' ' '\n' |
+        cut -f2 -d'"' |
+        xargs -n1 pcs resource disable
+    - name: wait for neutron services to stop
+      shell: >
+        while pcs status xml |
+            xmllint --xpath '//resource[starts-with(@id, "neutron") and @role = "Started"]' -; do
+          sleep 1
+        done
+
+
+- hosts: controller
+  tags:
+    - packages
+  tasks:
+    - yum: name={{item}} state=latest
+      with_items:
+        - openstack-selinux
+        - openstack-neutron*
+        - python-neutron*
+
+- hosts: controller
+  tags:
+    - bugfix
+    - bz1250156
+    - bz1250160
+    - bz1250164
+    - bz1250166
+    - bz1250219
+    - packages
+  tasks:
+    - name: "BZ 1250156,1250160,1250164,1250166,1250219: fix neutron dependencies"
+      yum: name={{item}} state=latest
+      with_items:
+        - python-oslo-db
+        - python-oslo-messaging
+        - python-oslo-i18n
+        - python-oslo-config
+        - python-oslo-rootwrap
+
+- hosts: controller
+  tags:
+    - packages
+  tasks:
+    - name: reload systemd for any changed unit files
+      command: systemctl daemon-reload
+
+- hosts: controller[0]
+  tags:
+    - database
+  tasks:
+    - command: >
+        openstack-db --service neutron --update
+
+# ## Update Neutron rootwrap configuration
+#
+# According to the [Kilo release notes][], the rootwrap `dhcp.filter`
+# configuration needs to be edited after upgrading from earlier
+# releases.
+#
+# - <https://wiki.openstack.org/wiki/ReleaseNotes/Kilo#Upgrade_Notes_6>
+- hosts: controller[0]
+  tasks:
+    - name: fix neutron dnsmasq rootwrap filter
+      command: >
+        sed -i '{{item}}' /usr/share/neutron/rootwrap/dhcp.filters
+      with_items:
+        - '/^dnsmasq:/ s/: .*/: CommandFilter, dnsmasq, root/'
+
+- hosts: controller[0]
+  tags:
+    - enable
+    - enable-neutron
+  tasks:
+    - name: enable neutron services
+      shell: >
+        pcs status xml |
+        xmllint --xpath '/crm_mon/resources/*[starts-with(@id, "neutron")]/@id' -  |
+        tr ' ' '\n' |
+        cut -f2 -d'"' |
+        xargs -n1 pcs resource enable
+    - name: wait for neutron services to start
+      shell: >
+        while pcs status xml |
+            xmllint --xpath '//resource[starts-with(@id, "neutron") and @role = "Stopped"]' -; do
+          sleep 1
+        done
+
+
