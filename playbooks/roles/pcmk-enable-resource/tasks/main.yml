@@ -1,0 +1,14 @@
+- name: enable resources
+  shell: >
+    pcs status xml |
+    xmllint --xpath '/crm_mon/resources/*[starts-with(@id, "{{resource_prefix}}")]/@id' -  |
+    tr ' ' '\n' |
+    cut -f2 -d'"' |
+    xargs -n1 pcs resource enable
+- name: wait for resources to start
+  shell: >
+    while pcs status xml |
+        xmllint --xpath '//resource[starts-with(@id, "{{resource_prefix}}") and @role = "Stopped"]' -; do
+      sleep 1
+    done
+

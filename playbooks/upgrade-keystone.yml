@@ -1,0 +1,91 @@
+- hosts: controller
+  tags:
+    - disable
+    - disable-keystone
+  tasks:
+    - name: unmanage keystone resource
+      command: pcs resource unmanage keystone-clone
+      run_once: true
+    - name: stop keystone resources
+      command: systemctl stop openstack-keystone
+
+- hosts: controller
+  tags:
+    - packages
+  tasks:
+    - yum: name={{item}} state=latest
+      with_items:
+        - openstack-selinux
+        - openstack-keystone*
+        - python-keystone*
+
+# ### BZ 1246542: keystone requires python-oslo-{db,messaging}
+#
+# The OSP-7 version of Keystone requires the python-oslo-db and
+# python-oslo-messaging packages, but does not indicate this
+# requirement as a package dependency.
+#
+# This task ensures the necessary packages are installed.
+#
+# - <http://bugzilla.redhat.com/1246542>
+#
+- hosts: controller
+  tags:
+    - keystone
+    - bugfix
+    - bz1246542
+  tasks:
+    - name: "BZ 1246542: keystone requires python-oslo-{db,messaging}"
+      yum: name={{item}} state=latest
+      with_items:
+        - python-oslo-messaging
+        - python-oslo-db
+
+# ### BZ 1246560: location of token persistence backends has changed
+#
+# Keystone in Kilo has renamed some Python classes.  In particular,
+# the token drivers that used to be available in
+# `keystone.token.backends` are now available in
+# `keystone.token.persistence.backends`.
+#
+# This task makes the necessary changes in your keystone.conf.
+#
+# - <http://bugzilla.redhat.com/1246560>
+#
+# This is documented in the [Keystone Upgrade Notes][] of the Kilo
+# release notes.
+#
+# [keystone upgrade notes]: # https://wiki.openstack.org/wiki/ReleaseNotes/Kilo#Upgrade_Notes_5
+#
+- hosts: controller
+  tags:
+    - keystone
+    - bugfix
+    - bz1246560
+  tasks:
+    - name: "BZ 1246560: location of token persistence backends has changed"
+      command: >
+        sed -i '{{item}}' /etc/keystone/keystone.conf
+      with_items:
+        - 's/keystone.token.backends/keystone.token.persistence.backends/g'
+
+- hosts: controller
+  tags:
+    - database
+  tasks:
+    - command: >
+        openstack-db --service keystone --update
+      run_once: true
+
+- include: reload-systemd.yml
+
+- hosts: controller
+  tags:
+    - enable
+    - enable-keystone
+  tasks:
+    - name: start keystone resources
+      command: systemctl start openstack-keystone
+    - name: manage keystone resource
+      command: pcs resource manage keystone-clone
+      run_once: true

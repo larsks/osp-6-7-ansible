@@ -1,0 +1,38 @@
+- hosts: controller
+  tags:
+    - disable
+    - disable-heat
+  roles:
+    - role: pacemaker-stop
+      resource_prefix: heat
+
+- hosts: controller
+  tags:
+    - packages
+  tasks:
+    - yum: name={{item}} state=latest
+      with_items:
+        - openstack-selinux
+        - openstack-heat*
+        - python-heat*
+
+- include: reload-systemd.yml
+
+- hosts: controller
+  tags:
+    - database
+  tasks:
+    - command: >
+        openstack-db --service heat --update
+      run_once: true
+
+- hosts: controller
+  tags:
+    - enable
+    - enable-heat
+  roles:
+    - role: pacemaker-start
+      resource_prefix: heat
+  tasks:
+    - name: enable heat engine
+      command: pcs resource enable openstack-heat-engine

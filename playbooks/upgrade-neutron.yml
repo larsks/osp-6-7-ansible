@@ -1,22 +1,10 @@
-- hosts: controller[0]
+- hosts: controller
   tags:
     - disable
     - disable-neutron
-  tasks:
-    - name: disable neutron services
-      shell: >
-        pcs status xml |
-        xmllint --xpath '/crm_mon/resources/*[starts-with(@id, "neutron")]/@id' -  |
-        tr ' ' '\n' |
-        cut -f2 -d'"' |
-        xargs -n1 pcs resource disable
-    - name: wait for neutron services to stop
-      shell: >
-        while pcs status xml |
-            xmllint --xpath '//resource[starts-with(@id, "neutron") and @role = "Started"]' -; do
-          sleep 1
-        done
-
+  roles:
+    - role: pacemaker-stop
+      resource_prefix: neutron
 
 - hosts: controller
   tags:
@@ -47,19 +35,15 @@
         - python-oslo-config
         - python-oslo-rootwrap
 
-- hosts: controller
-  tags:
-    - packages
-  tasks:
-    - name: reload systemd for any changed unit files
-      command: systemctl daemon-reload
+- include: reload-systemd.yml
 
-- hosts: controller[0]
+- hosts: controller
   tags:
     - database
   tasks:
     - command: >
         openstack-db --service neutron --update
+      run_once: true
 
 # ## Update Neutron rootwrap configuration
 #
@@ -68,31 +52,19 @@
 # releases.
 #
 # - <https://wiki.openstack.org/wiki/ReleaseNotes/Kilo#Upgrade_Notes_6>
-- hosts: controller[0]
+- hosts: controller
   tasks:
     - name: fix neutron dnsmasq rootwrap filter
       command: >
         sed -i '{{item}}' /usr/share/neutron/rootwrap/dhcp.filters
       with_items:
         - '/^dnsmasq:/ s/: .*/: CommandFilter, dnsmasq, root/'
+      run_once: true
 
-- hosts: controller[0]
+- hosts: controller
   tags:
     - enable
     - enable-neutron
-  tasks:
-    - name: enable neutron services
-      shell: >
-        pcs status xml |
-        xmllint --xpath '/crm_mon/resources/*[starts-with(@id, "neutron")]/@id' -  |
-        tr ' ' '\n' |
-        cut -f2 -d'"' |
-        xargs -n1 pcs resource enable
-    - name: wait for neutron services to start
-      shell: >
-        while pcs status xml |
-            xmllint --xpath '//resource[starts-with(@id, "neutron") and @role = "Stopped"]' -; do
-          sleep 1
-        done
-
-
+  roles:
+    - role: pacemaker-start
+      resource_prefix: neutron

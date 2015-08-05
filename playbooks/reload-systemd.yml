@@ -1,0 +1,8 @@
+- hosts: controller
+  tags:
+    - packages
+  tasks:
+    - name: reload systemd for any changed unit files
+      command: systemctl daemon-reload
+
+

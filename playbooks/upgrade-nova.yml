@@ -1,21 +1,10 @@
-- hosts: controller[0]
+- hosts: controller
   tags:
     - disable
     - disable-nova
-  tasks:
-    - name: disable nova services
-      shell: >
-        pcs status xml |
-        xmllint --xpath '/crm_mon/resources/*[starts-with(@id, "openstack-nova")]/@id' -  |
-        tr ' ' '\n' |
-        cut -f2 -d'"' |
-        xargs -n1 pcs resource disable
-    - name: wait for nova services to stop
-      shell: >
-        while pcs status xml |
-            xmllint --xpath '//resource[starts-with(@id, "openstack-nova") and @role = "Started"]' -; do
-          sleep 1
-        done
+  roles:
+    - role: pacemaker-stop
+      resource_prefix: openstack-nova
 
 - hosts: controller
   tags:
@@ -26,6 +15,78 @@
         - openstack-selinux
         - openstack-nova*
         - python-nova*
+
+# ### BZ 1250589: openstack-nova requires python-oslo-config
+- hosts: controller
+  tags:
+    - bugfix
+    - bz1250589
+  tasks:
+    - name: "BZ 1250589: openstack-nova requires python-oslo-config"
+      yum: name=python-oslo-config state=latest
+
+# ### BZ 1250594: openstack-nova requires python-oslo-utils
+- hosts: controller
+  tags:
+    - bugfix
+    - bz1250594
+  tasks:
+    - name: "BZ 1250594: openstack-nova requires python-oslo-utils"
+      yum: name=python-oslo-utils state=latest
+
+# ### BZ 1250597: openstack-nova requires python-oslo-i18n
+- hosts: controller
+  tags:
+    - bugfix
+    - bz1250597
+  tasks:
+    - name: "BZ 1250597: openstack-nova requires python-oslo-i18n"
+      yum: name=python-oslo-i18n state=latest
+
+# ### BZ 1250599: openstack-nova requires python-oslo-serialization
+- hosts: controller
+  tags:
+    - bugfix
+    - bz1250599
+  tasks:
+    - name: "BZ 1250599: openstack-nova requires python-oslo-serialization"
+      yum: name=python-oslo-serialization state=latest
+
+# ### BZ 1250604: openstack-nova requires python-oslo-messaging
+- hosts: controller
+  tags:
+    - bugfix
+    - bz1250604
+  tasks:
+    - name: "BZ 1250604: openstack-nova requires python-oslo-messaging"
+      yum: name=python-oslo-messaging state=latest
+
+# ### BZ 1250606: openstack-nova requires python-oslo-db
+- hosts: controller
+  tags:
+    - bugfix
+    - bz1250606
+  tasks:
+    - name: "BZ 1250606: openstack-nova requires python-oslo-db"
+      yum: name=python-oslo-db state=latest
+
+# ### BZ 1250609: openstack-nova requires python-oslo-rootwrap
+- hosts: controller
+  tags:
+    - bugfix
+    - bz1250609
+  tasks:
+    - name: "BZ 1250609: openstack-nova requires python-oslo-rootwrap"
+      yum: name=python-oslo-rootwrap state=latest
+
+# ### BZ 1250621: openstack-nova requires upgraded python-neutronclient
+- hosts: controller
+  tags:
+    - bugfix
+    - bz1250621
+  tasks:
+    - name: "BZ 1250621: openstack-nova requires upgraded python-neutronclient"
+      yum: name=python-neutronclient state=latest
 
 # ### BZ 1246638: novncproxy requires upgraded websockify
 #
@@ -48,37 +109,20 @@
     - name: "BZ 1246638: novncproxy requires upgraded websockify"
       yum: name=python-websockify state=latest
 
-- hosts: controller
-  tags:
-    - packages
-  tasks:
-    - name: reload systemd for any changed unit files
-      command: systemctl daemon-reload
+- include: reload-systemd.yml
 
-- hosts: controller[0]
+- hosts: controller
   tags:
     - database
   tasks:
     - command: >
         openstack-db --service nova --update
-
-# ## Migrate nova flavor information
-#
-# According to the [Kilo release notes][], "After fully upgrading to
-# kilo...you should start a background migration of flavor information
-# from its old home to its new home." "Use 'nova-manage
-# migrate-flavor-data' to perform this transition."
-#
-- hosts: controller[0]
-  tags:
-    - database
-    - nova-migrate-flavor
-  tasks:
+      run_once: true
     - name: migrate nova flavor data
       command: >
         runuser -u nova -- nova-manage db
         migrate_flavor_data {{migrate_flavor_max_instance|default('100')}}
-
+      run_once: true
 
 - hosts: controller
   tags:
@@ -91,21 +135,10 @@
       with_items:
         - compute
 
-- hosts: controller[0]
+- hosts: controller
   tags:
     - enable
     - enable-nova
-  tasks:
-    - name: enable nova services
-      shell: >
-        pcs status xml |
-        xmllint --xpath '/crm_mon/resources/*[starts-with(@id, "openstack-nova")]/@id' -  |
-        tr ' ' '\n' |
-        cut -f2 -d'"' |
-        xargs -n1 pcs resource enable
-    - name: wait for nova services to start
-      shell: >
-        while pcs status xml |
-            xmllint --xpath '//resource[starts-with(@id, "openstack-nova") and @role = "Stopped"]' -; do
-          sleep 1
-        done
+  roles:
+    - role: pacemaker-start
+      resource_prefix: openstack-nova
