@@ -1,0 +1,26 @@
+- hosts: controller
+  tags:
+    - disable
+    - disable-horizon
+  roles:
+    - role: pcs-stop-prefix
+      resource_prefix: horizon
+
+- hosts: controller
+  tasks:
+    - name: upgrade horizon
+      yum: name={{item}} state=latest
+      with_items:
+        - httpd
+        - openstack-dashboard*
+        - python-django*
+
+- include: reload-systemd.yml
+
+- hosts: controller
+  tags:
+    - enable
+    - enable-horizon
+  roles:
+    - role: pcs-start-prefix
+      resource_prefix: horizon
