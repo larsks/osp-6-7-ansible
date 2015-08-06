@@ -1,3 +1,11 @@
+# # Upgrade Keystone
+# 
+# This playbook ugprades the OpenStack Keystone service.  In order to
+# avoid bringing down most of the OpenStack environment, we first
+# remove Keystone from Pacemaker controlling using the `unmanage`
+# command.  We are then able to shut down Keystone on the controllers
+# using `systemctl`.
+#
 - hosts: controller
   tags:
     - disable
@@ -9,6 +17,7 @@
     - name: stop keystone resources
       command: systemctl stop openstack-keystone
 
+# Once the service has stopped running, we can upgrade the packages.
 - hosts: controller
   tags:
     - packages
@@ -19,6 +28,12 @@
         - openstack-keystone*
         - python-keystone*
 
+# ## Bug fixes
+#
+# After upgrading the main Keystone packages, we need to account for a
+# number of missing package dependencies that are necessary for
+# Keystone to function properly.
+#
 # ### BZ 1246542: keystone requires python-oslo-{db,messaging}
 #
 # The OSP-7 version of Keystone requires the python-oslo-db and
@@ -69,6 +84,13 @@
       with_items:
         - 's/keystone.token.backends/keystone.token.persistence.backends/g'
 
+- include: reload-systemd.yml
+
+# ## Database schema upgrades
+#
+# We need to update the database schema to the version expected by the
+# new version of Keystone.
+#
 - hosts: controller
   tags:
     - database
@@ -77,8 +99,6 @@
         openstack-db --service keystone --update
       run_once: true
 
-- include: reload-systemd.yml
-
 - hosts: controller
   tags:
     - enable
@@ -86,6 +106,11 @@
   tasks:
     - name: start keystone resources
       command: systemctl start openstack-keystone
+    - name: wait for keystone to start
+      shell: >
+        while ! crm_resource -r keystone-clone --force-check; do
+          sleep 1
+        done
     - name: manage keystone resource
       command: pcs resource manage keystone-clone
       run_once: true

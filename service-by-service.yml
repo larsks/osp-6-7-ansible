@@ -1,0 +1,13 @@
+- include: playbooks/upgrade-galera.yml
+- include: playbooks/upgrade-mongo.yml
+- include: playbooks/upgrade-keystone.yml
+- include: playbooks/upgrade-glance.yml
+- include: playbooks/upgrade-heat.yml
+- include: playbooks/upgrade-cinder.yml
+- include: playbooks/upgrade-ceilometer.yml
+- include: playbooks/upgrade-nova.yml
+- include: playbooks/upgrade-neutron.yml
+- include: playbooks/upgrade-horizon.yml
+- include: playbooks/upgrade-controller-packages.yml
+- include: playbooks/upgrade-compute.yml
+- include: playbooks/remove-api-caps.yml

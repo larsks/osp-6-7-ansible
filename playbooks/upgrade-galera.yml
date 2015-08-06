@@ -1,3 +1,11 @@
+# ## Upgrade MariaDB Galera
+#
+# This playbook upgrades the MariaDB Galera service.  The play
+# operates by upgrading each controller in sequence, first stopping
+# the galera resource through the use of `pcs ban`, then upgrading the
+# packages, and then allowing Pacemaker to reschedule the resource on
+# the node.
+#
 - hosts: controller
   serial: 1
   tasks:

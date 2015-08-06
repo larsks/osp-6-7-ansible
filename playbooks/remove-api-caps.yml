@@ -1,0 +1,10 @@
+- hosts: controller
+  tags:
+    - config
+    - config-nova
+  tasks:
+    - name: remove api caps on controller
+      command: >
+        crudini --del /etc/nova/nova.conf upgrade_levels {{item}}
+      with_items:
+        - compute

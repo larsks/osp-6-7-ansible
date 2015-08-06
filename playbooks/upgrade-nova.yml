@@ -3,7 +3,7 @@
     - disable
     - disable-nova
   roles:
-    - role: pacemaker-stop
+    - role: pcs-stop-prefix
       resource_prefix: openstack-nova
 
 - hosts: controller
@@ -140,5 +140,5 @@
     - enable
     - enable-nova
   roles:
-    - role: pacemaker-start
+    - role: pcs-start-prefix
       resource_prefix: openstack-nova

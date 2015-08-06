@@ -1,13 +1,10 @@
 - hosts: controller
   tags:
     - disable
-    - disable-heat
+    - disable-glance
   roles:
     - role: pcs-stop-prefix
-      resource_prefix: heat
-    - role: pcs-stop
-      resources:
-        - openstack-heat-engine
+      resource_prefix: glance
 
 - hosts: controller
   tags:
@@ -16,8 +13,8 @@
     - yum: name={{item}} state=latest
       with_items:
         - openstack-selinux
-        - openstack-heat*
-        - python-heat*
+        - openstack-glance*
+        - python-glance*
 
 - include: reload-systemd.yml
 
@@ -26,16 +23,13 @@
     - database
   tasks:
     - command: >
-        openstack-db --service heat --update
+        openstack-db --service glance --update
       run_once: true
 
 - hosts: controller
   tags:
     - enable
-    - enable-heat
+    - enable-glance
   roles:
     - role: pcs-start-prefix
-      resource_prefix: heat
-    - role: pcs-start
-      resources:
-        - openstack-heat-engine
+      resource_prefix: glance

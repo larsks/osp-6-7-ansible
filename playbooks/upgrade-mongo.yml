@@ -1,0 +1,54 @@
+# ## Upgrade MongoDB
+#
+# This playbook upgrades the mongodb service.
+#
+# In order to avoid bringing down all of ceilometer, we first
+# "unmanage" the resource in order to prevent Pacemaker from responding to
+# service outages.  Then we are able to use `systemctl` to stop the
+# `mongod` service on all the controllers.
+#
+- hosts: controller
+  tags:
+    - disable
+    - disable-mongo
+  tasks:
+    - name: unmanage mongod resource
+      command: pcs resource unmanage mongod-clone
+      run_once: true
+    - name: stop mongod resources
+      command: systemctl stop mongod
+
+# With `mongod` stopped, we are able to upgrade the mongodb packages.
+#
+- hosts: controller
+  tags:
+    - packages
+  tasks:
+    - yum: name={{item}} state=latest
+      with_items:
+        - openstack-selinux
+        - mongodb*
+        - python-pymongo*
+
+# Package updates may include new systemd unit files, so we make sure
+# that systemd is aware of the them.
+#
+- include: reload-systemd.yml
+
+# We restart `mongod` using `systemctl`, make sure it has started
+# successfully, and then hand control back to Pacemaker.
+- hosts: controller
+  tags:
+    - enable
+    - enable-mongo
+  tasks:
+    - name: start mongo resources
+      command: systemctl start mongod
+    - name: wait for mongo to start
+      shell: >
+        while ! crm_resource -r mongod-clone --force-check; do
+          sleep 1
+        done
+    - name: manage mongo resource
+      command: pcs resource manage mongod-clone
+      run_once: true

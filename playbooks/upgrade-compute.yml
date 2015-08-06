@@ -1,0 +1,17 @@
+# # Upgrade compute nodes
+#
+# This playbook will upgrade all packages on the compute nodes (and
+# restart all OpenStack services).  We serialize this so that only one
+# compute node is upgraded at a time.
+#
+- hosts: compute
+  serial: 1
+  tasks:
+    - name: stop openstack services
+      command: openstack-service stop
+    - name: upgrade all packages
+      yum: name=* state=latest
+    - name: reload systemd
+      command: systemctl daemon-reload
+    - name: start openstack services
+      command: openstack-service start

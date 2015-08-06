@@ -1,0 +1,33 @@
+- hosts: controller
+  tags:
+    - disable
+    - disable-ceilometer
+  roles:
+    - role: pcs-stop-prefix
+      resource_prefix: openstack-ceilometer
+    - role: pcs-stop
+      resources:
+        - ceilometer-delay-clone
+
+- hosts: controller
+  tags:
+    - packages
+  tasks:
+    - name: upgrade ceilometer
+      yum: name={{item}} state=latest
+      with_items:
+        - openstack-selinux
+        - openstack-ceilometer*
+        - python-ceilometer*
+
+- hosts: controller
+  tags:
+    - enable
+    - enable-ceilometer
+  roles:
+    - role: pcs-start
+      resources: 
+        - ceilometer-delay-clone
+      wait: false
+    - role: pcs-start-prefix
+      resource_prefix: openstack-ceilometer
