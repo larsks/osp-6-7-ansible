@@ -10,6 +10,11 @@ playbook includes a suite of other playbooks to upgrade the
 individual services.  Individual playbooks include their own
 documentation.
 
+**NB**: For this procedure to work, you need RHEL-OSP 6 Neutron
+packages that have a fix for [BZ 1250056][].
+
+[bz 1250056]: https://bugzilla.redhat.com/show_bug.cgi?id=1250056
+
 
 
 <!-- break -->
