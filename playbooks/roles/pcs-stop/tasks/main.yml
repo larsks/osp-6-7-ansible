@@ -1,3 +1,8 @@
+# Stop a list of Pacemaker resources
+#
+# This uses `pcs enable` to start a list of specific Pacemaker
+# resources, then waits for those resources to exit the `Started`
+# role.
 - name: disable pacemaker resources for {{service}}
   command: pcs resource disable {{item}}
   with_items: resources

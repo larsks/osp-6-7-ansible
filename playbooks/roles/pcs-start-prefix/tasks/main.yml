@@ -1,3 +1,8 @@
+# Start Pacemaker resources matching the given prefix string
+#
+# This looks for resources matching the given `resource_prefix` string, calls
+# `pcs enable` on the result, and then waits for those resources to exit the
+# `Stopped` role.
 - name: start {{resource_prefix}} resources
   shell: >
     pcs status xml |

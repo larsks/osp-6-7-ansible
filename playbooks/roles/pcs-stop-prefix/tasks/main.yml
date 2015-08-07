@@ -1,3 +1,8 @@
+# Stop Pacemaker resources matching the given prefix string
+#
+# This looks for resources matching the given `resource_prefix` string, calls
+# `pcs disable` on the result, and then waits for those resources to exit the
+# `Started` role.
 - name: stop {{resource_prefix}} resources
   shell: >
     pcs status xml |
