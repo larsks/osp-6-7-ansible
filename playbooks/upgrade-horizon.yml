@@ -1,3 +1,7 @@
+# # Upgrade Horizon
+#
+# This playbook upgrades OpenStack Horizon.
+#
 - hosts: controller
   tags:
     - disable
@@ -15,8 +19,29 @@
         - openstack-dashboard*
         - python-django*
 
+# ## Bugfixes
+#
+# ### BZ 1251322: start-delay on horizon is too short
+#
+# Restarting httpd would occasionally fail due to delays introduced by
+# some pre-processing related to Horizon's web interface.
+#
+# - <https://bugzilla.redhat.com/1251322>
+#
+- hosts: controller
+  tags:
+    - bugfix
+    - bz1251322
+  tasks:
+    - name: update start-delay time on horizon resource
+      command: pcs resource op add horizon start interval=0 timeout=120
+      run_once: true
+
+# ## Reload systemd
 - include: reload-systemd.yml
 
+# ## Restart Apache
+#
 - hosts: controller
   tags:
     - enable

@@ -1,3 +1,8 @@
+# # Upgrade Heat
+#
+# This playbook updates OpenStack Heat, using the same process that
+# we used for Glance.
+#
 - hosts: controller
   tags:
     - disable
@@ -6,6 +11,7 @@
     - role: pcs-stop-prefix
       resource_prefix: heat
     - role: pcs-stop
+      service: heat
       resources:
         - openstack-heat-engine
 
@@ -37,5 +43,6 @@
     - role: pcs-start-prefix
       resource_prefix: heat
     - role: pcs-start
+      service: heat
       resources:
         - openstack-heat-engine

@@ -1,3 +1,7 @@
+# # Upgrade Nova
+#
+# This playbook updates OpenStack Nova on the controllers.
+#
 - hosts: controller
   tags:
     - disable
@@ -16,7 +20,11 @@
         - openstack-nova*
         - python-nova*
 
+# ## Bugfixes
+#
 # ### BZ 1250589: openstack-nova requires python-oslo-config
+#
+# - <http://bugzilla.redhat.com/1250589>
 - hosts: controller
   tags:
     - bugfix
@@ -26,6 +34,8 @@
       yum: name=python-oslo-config state=latest
 
 # ### BZ 1250594: openstack-nova requires python-oslo-utils
+#
+# - <http://bugzilla.redhat.com/1250594>
 - hosts: controller
   tags:
     - bugfix
@@ -35,6 +45,8 @@
       yum: name=python-oslo-utils state=latest
 
 # ### BZ 1250597: openstack-nova requires python-oslo-i18n
+#
+# - <http://bugzilla.redhat.com/1250597>
 - hosts: controller
   tags:
     - bugfix
@@ -44,6 +56,8 @@
       yum: name=python-oslo-i18n state=latest
 
 # ### BZ 1250599: openstack-nova requires python-oslo-serialization
+#
+# - <http://bugzilla.redhat.com/1250599>
 - hosts: controller
   tags:
     - bugfix
@@ -53,6 +67,8 @@
       yum: name=python-oslo-serialization state=latest
 
 # ### BZ 1250604: openstack-nova requires python-oslo-messaging
+#
+# - <http://bugzilla.redhat.com/1250604>
 - hosts: controller
   tags:
     - bugfix
@@ -62,6 +78,8 @@
       yum: name=python-oslo-messaging state=latest
 
 # ### BZ 1250606: openstack-nova requires python-oslo-db
+#
+# - <http://bugzilla.redhat.com/1250606>
 - hosts: controller
   tags:
     - bugfix
@@ -71,6 +89,8 @@
       yum: name=python-oslo-db state=latest
 
 # ### BZ 1250609: openstack-nova requires python-oslo-rootwrap
+#
+# - <http://bugzilla.redhat.com/1250609>
 - hosts: controller
   tags:
     - bugfix
@@ -80,6 +100,8 @@
       yum: name=python-oslo-rootwrap state=latest
 
 # ### BZ 1250621: openstack-nova requires upgraded python-neutronclient
+#
+# - <http://bugzilla.redhat.com/1250621>
 - hosts: controller
   tags:
     - bugfix
@@ -109,8 +131,21 @@
     - name: "BZ 1246638: novncproxy requires upgraded websockify"
       yum: name=python-websockify state=latest
 
+# ## Reload systemd
+#
+# Package updates may include new systemd unit files, so we make sure
+# that systemd is aware of any updated files.
+#
 - include: reload-systemd.yml
 
+# ## Database updates
+#
+# In addition to the schema upgrade, Nova also needs to perform some
+# data migrations as part of the OSP 6 -> OSP 7 upgrade, as documented
+# in the [Nova upgrade notes][].
+#
+# [nova upgrade notes]: https://wiki.openstack.org/wiki/ReleaseNotes/Kilo#Upgrade_Notes_2
+#
 - hosts: controller
   tags:
     - database
@@ -124,6 +159,12 @@
         migrate_flavor_data {{migrate_flavor_max_instance|default('100')}}
       run_once: true
 
+# ## Set API limits
+#
+# We want to ensure that our OSP-7 controllers are compatible with our
+# OSP-6 compute nodes.  Once the upgrade of both the controllers and
+# compute nodes is complete we will remove these API limits.
+#
 - hosts: controller
   tags:
     - config
@@ -135,6 +176,9 @@
       with_items:
         - compute
 
+# ## Restart Nova services
+#
+# Lastly we restart Nova services on the controllers.
 - hosts: controller
   tags:
     - enable

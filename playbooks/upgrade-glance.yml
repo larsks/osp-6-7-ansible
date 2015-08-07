@@ -1,3 +1,8 @@
+# # Upgrade Glance
+#
+# This playbook ugrades the OpenStack Glance service.  We start by
+# disabling all Glance services across the cluster.
+#
 - hosts: controller
   tags:
     - disable
@@ -6,6 +11,8 @@
     - role: pcs-stop-prefix
       resource_prefix: glance
 
+# With Glance offline, we are able to upgrade the relevant packages.
+#
 - hosts: controller
   tags:
     - packages
@@ -16,8 +23,14 @@
         - openstack-glance*
         - python-glance*
 
+# Package updates may include new systemd unit files, so we make sure
+# that systemd is aware of any updated files.
+#
 - include: reload-systemd.yml
 
+# We need to update the database schema to the version expected by the
+# updated packages.
+#
 - hosts: controller
   tags:
     - database
@@ -26,6 +39,7 @@
         openstack-db --service glance --update
       run_once: true
 
+# Finally, we restart Glance services across the cluster.
 - hosts: controller
   tags:
     - enable

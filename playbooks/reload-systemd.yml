@@ -1,3 +1,6 @@
+# New packages may include updated systemd until files.  We call
+# `systemctl daemon-reload` to make sure that systemd is aware of any
+# updated files.
 - hosts: controller
   tags:
     - packages

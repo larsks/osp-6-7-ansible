@@ -1,4 +1,4 @@
-- name: stop pacemaker resources
+- name: stop {{resource_prefix}} resources
   shell: >
     pcs status xml |
     xmllint --xpath '/crm_mon/resources/*[starts-with(@id, "{{resource_prefix}}")]/@id' -  |
@@ -6,7 +6,7 @@
     cut -f2 -d'"' |
     xargs -n1 pcs resource disable
   run_once: true
-- name: wait for pacemaker resources to stop
+- name: wait for {{resource_prefix}} resources to stop
   shell: >
     while pcs status xml |
         xmllint --xpath '//resource[starts-with(@id, "{{resource_prefix}}") and @role = "Started"]' -; do

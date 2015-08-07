@@ -2,5 +2,5 @@
   tasks:
     - name: upgrade all remaining packages
       yum: name=* state=latest
-    - name: reload system
+    - name: reload systemd
       command: systemctl daemon-reload

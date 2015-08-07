@@ -1,3 +1,16 @@
+# ---
+# title: Service-by-service upgrade from RHEL-OSP 6 to RHEL-OSP 7
+# ---
+#
+# # Service-by-service upgrade from RHEL-OSP 6 to RHEL-OSP 7
+#
+# This collection of playbooks demonstrates a process to upgrade a
+# RHEL-OSP 6 environment to RHEL-OSP 7 with minimal downtime.  This
+# playbook includes a suite of other playbooks to upgrade the
+# individual services.  Individual playbooks include their own
+# documentation.
+#
+- include: playbooks/wait-all-started.yml
 - include: playbooks/upgrade-galera.yml
 - include: playbooks/upgrade-mongo.yml
 - include: playbooks/upgrade-keystone.yml
@@ -10,4 +23,4 @@
 - include: playbooks/upgrade-horizon.yml
 - include: playbooks/upgrade-controller-packages.yml
 - include: playbooks/upgrade-compute.yml
-- include: playbooks/remove-api-caps.yml
+- include: playbooks/upgrade-nova-post.yml

@@ -13,5 +13,10 @@
       yum: name=* state=latest
     - name: reload systemd
       command: systemctl daemon-reload
+    - name: set api caps
+      command: >
+        crudini --set /etc/nova/nova.conf upgrade_levels {{item}} juno
+      with_items:
+        - compute
     - name: start openstack services
       command: openstack-service start

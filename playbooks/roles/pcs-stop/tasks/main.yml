@@ -1,7 +1,7 @@
-- name: disable pacemaker resources
+- name: disable pacemaker resources for {{service}}
   command: pcs resource disable {{item}}
   with_items: resources
-- name: wait for pacemaker resources to stop
+- name: wait for {{service}} resources to stop
   shell: >
     while pcs status xml |
         xmllint --xpath '//resource[@id = "{{item}}" and @role = "Started"]' -; do

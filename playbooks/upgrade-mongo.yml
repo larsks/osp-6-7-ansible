@@ -1,4 +1,4 @@
-# ## Upgrade MongoDB
+# # Upgrade MongoDB
 #
 # This playbook upgrades the mongodb service.
 #
@@ -31,12 +31,13 @@
         - python-pymongo*
 
 # Package updates may include new systemd unit files, so we make sure
-# that systemd is aware of the them.
+# that systemd is aware of any updated files.
 #
 - include: reload-systemd.yml
 
 # We restart `mongod` using `systemctl`, make sure it has started
 # successfully, and then hand control back to Pacemaker.
+#
 - hosts: controller
   tags:
     - enable

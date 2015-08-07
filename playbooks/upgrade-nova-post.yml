@@ -1,0 +1,39 @@
+# # Remove Nova API caps
+#
+# Now that we have upgraded all of our controlls and compute nodes, we
+# can remove the API limits we put in place during the upgrade.
+#
+# First, we remove the relevant configuration on all of our hosts.
+#
+- hosts: all
+  tags:
+    - post
+    - post-nova
+  tasks:
+    - name: remove api caps
+      command: >
+        crudini --del /etc/nova/nova.conf upgrade_levels {{item}}
+      with_items:
+        - compute
+
+# Then we restart Nova services on the controller...
+#
+- hosts: controller
+  tags:
+    - post
+    - post-nova
+  roles:
+    - role: pcs-stop-prefix
+      resource_prefix: openstack-nova
+    - role: pcs-start-prefix
+      resource_prefix: openstack-nova
+
+# ...followed by Nova services on the compute nodes.
+#
+- hosts: compute
+  tags:
+    - post
+    - post-nova
+  tasks:
+    - name: restart nova services on compute host
+      command: openstack-service restart nova

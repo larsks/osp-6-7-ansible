@@ -2,7 +2,8 @@
 title: Upgrading RHEL-OSP 6 to RHEL-OSP 7
 ---
 
-(This documentation was generated automatically from [osp-6-7-upgrade.yml][].)
+(This documentation was generated automatically from
+[osp-6-7-upgrade.yml][].)
 
 [osp-6-7-upgrade.yml]: osp-6-7-upgrade.yml
 
@@ -12,9 +13,9 @@ title: Upgrading RHEL-OSP 6 to RHEL-OSP 7
 information about configuration and functional changes between Juno
 and Kilo.
 
-This is an [Ansible][] playbook that will upgrade a RHEL-OSP 6 HA environment to
-RHEL-OSP 7.  Your OpenStack environment will be unavailable for the duration
-of the upgrade.
+This is an [Ansible][] playbook that will upgrade a RHEL-OSP 6 HA
+environment to RHEL-OSP 7.  Your OpenStack environment will be
+unavailable for the duration of the upgrade.
 
 [ansible]: http://www.ansible.com/
 

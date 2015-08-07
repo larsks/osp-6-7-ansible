@@ -1,3 +1,8 @@
+# # Upgrade Ceilometer
+#
+# This playbook updates OpenStack Ceilometer, using the same process that
+# we used for Glance.
+#
 - hosts: controller
   tags:
     - disable
@@ -6,6 +11,7 @@
     - role: pcs-stop-prefix
       resource_prefix: openstack-ceilometer
     - role: pcs-stop
+      service: ceilometer
       resources:
         - ceilometer-delay-clone
 
@@ -26,6 +32,7 @@
     - enable-ceilometer
   roles:
     - role: pcs-start
+      service: ceilometer
       resources: 
         - ceilometer-delay-clone
       wait: false

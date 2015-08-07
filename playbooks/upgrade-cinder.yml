@@ -1,3 +1,8 @@
+# # Upgrade Cinder
+#
+# This playbook updates OpenStack Cinder, using the same process that
+# we used for Glance.
+#
 - hosts: controller
   tags:
     - disable

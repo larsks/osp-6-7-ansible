@@ -1,0 +1,19 @@
+# # Wait for Pacemaker resources to start
+#
+# We want the cluster state to be sane before we start the upgrade
+# (because if there are resources that are not starting correctly, the
+# upgrade process will probably hang at some point).  This queries
+# Pacemaker (using `pcs status xml`) until there are no resources in
+# the `Stopped` role.
+#
+- hosts: controller
+  tags:
+    - check
+  tasks:
+    - name: wait for all pacemaker resources to start
+      shell: >
+        while pcs status xml |
+            xmllint --xpath '//resource[@role = "Stopped"]' -; do
+          sleep 1
+        done
+

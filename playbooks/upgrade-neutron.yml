@@ -1,3 +1,8 @@
+# # Upgrade Neutron
+#
+# This playbook updates OpenStack Neutron, using the same process that
+# we used for Glance.
+#
 - hosts: controller
   tags:
     - disable
@@ -18,6 +23,8 @@
         - dnsmasq
         - openvswitch
 
+# ## Bugfixes
+#
 - hosts: controller
   tags:
     - bugfix
@@ -37,8 +44,15 @@
         - python-oslo-config
         - python-oslo-rootwrap
 
+# ## Reload systemd
+#
+# Package updates may include new systemd unit files, so we make sure
+# that systemd is aware of any updated files.
+#
 - include: reload-systemd.yml
 
+# ## Update database schema
+#
 - hosts: controller
   tags:
     - database
@@ -49,11 +63,11 @@
 
 # ## Update Neutron rootwrap configuration
 #
-# According to the [Kilo release notes][], the rootwrap `dhcp.filter`
+# According to the [Neutron upgrade notes][], the rootwrap `dhcp.filter`
 # configuration needs to be edited after upgrading from earlier
 # releases.
 #
-# - <https://wiki.openstack.org/wiki/ReleaseNotes/Kilo#Upgrade_Notes_6>
+# [neutron upgrade notes]: https://wiki.openstack.org/wiki/ReleaseNotes/Kilo#Upgrade_Notes_6
 - hosts: controller
   tasks:
     - name: fix neutron dnsmasq rootwrap filter
@@ -63,6 +77,8 @@
         - '/^dnsmasq:/ s/: .*/: CommandFilter, dnsmasq, root/'
       run_once: true
 
+# ## Restart Neutron services
+#
 - hosts: controller
   tags:
     - enable

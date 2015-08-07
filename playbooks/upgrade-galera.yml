@@ -1,10 +1,14 @@
-# ## Upgrade MariaDB Galera
+# # Upgrade MariaDB Galera
 #
 # This playbook upgrades the MariaDB Galera service.  The play
 # operates by upgrading each controller in sequence, first stopping
 # the galera resource through the use of `pcs ban`, then upgrading the
 # packages, and then allowing Pacemaker to reschedule the resource on
 # the node.
+#
+# Because we want to serialize this across the controllers, it is
+# implemented as a single monolithic play rather than a series of
+# more granular plays.
 #
 - hosts: controller
   serial: 1
@@ -14,12 +18,16 @@
       register: crm_node
     - name: stop galera from running on this node
       command: pcs resource ban galera-master {{crm_node.stdout}}
+
+    # This waits until there is no longer a "galera" resource running
+    # on the local node.
     - name: wait for galera to stop
       shell: >
         while pcs status xml |
             xmllint --xpath '//resource[@id = "galera"]/node[@name="{{crm_node.stdout}}"]' -; do
           sleep 1
         done
+
     - name: upgrade galera packages
       yum: name={{item}} state=latest
       with_items:
@@ -30,6 +38,9 @@
       command: systemctl daemon-reload
     - name: allow galera to run on this node
       command: pcs resource clear galera-master
+
+    # This waits for the galera *on this host* to reach the "Master"
+    # role.
     - name: wait for galera to start
       shell: >
         while ! pcs status xml |

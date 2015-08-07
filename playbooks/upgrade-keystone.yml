@@ -1,10 +1,10 @@
 # # Upgrade Keystone
 # 
 # This playbook ugprades the OpenStack Keystone service.  In order to
-# avoid bringing down most of the OpenStack environment, we first
-# remove Keystone from Pacemaker controlling using the `unmanage`
-# command.  We are then able to shut down Keystone on the controllers
-# using `systemctl`.
+# avoid bringing down most of the OpenStack environment (due to
+# Pacemaker resource constraints), we first remove Keystone from
+# Pacemaker control using the `unmanage` command.  We are then
+# able to shut down Keystone on the controllers using `systemctl`.
 #
 - hosts: controller
   tags:
@@ -70,7 +70,7 @@
 # This is documented in the [Keystone Upgrade Notes][] of the Kilo
 # release notes.
 #
-# [keystone upgrade notes]: # https://wiki.openstack.org/wiki/ReleaseNotes/Kilo#Upgrade_Notes_5
+# [keystone upgrade notes]: https://wiki.openstack.org/wiki/ReleaseNotes/Kilo#Upgrade_Notes_5
 #
 - hosts: controller
   tags:
@@ -84,6 +84,9 @@
       with_items:
         - 's/keystone.token.backends/keystone.token.persistence.backends/g'
 
+# Package updates may include new systemd unit files, so we make sure
+# that systemd is aware of any updated files.
+#
 - include: reload-systemd.yml
 
 # ## Database schema upgrades
@@ -99,6 +102,11 @@
         openstack-db --service keystone --update
       run_once: true
 
+# ## Restore service
+#
+# We start Keystone on each node using `systemctl`, wait for the
+# service to start successfully, and then finally return control to
+# Pacemaker.
 - hosts: controller
   tags:
     - enable
