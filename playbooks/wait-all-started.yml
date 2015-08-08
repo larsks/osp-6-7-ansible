@@ -11,7 +11,7 @@
     - check
   tasks:
     - name: wait for all pacemaker resources to start
-      shell: >
+      shell: |
         while pcs status xml |
             xmllint --xpath '//resource[@role = "Stopped"]' -; do
           sleep 1

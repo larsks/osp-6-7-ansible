@@ -7,7 +7,7 @@
   command: pcs resource enable {{item}}
   with_items: resources
 - name: wait for {{service}} resources to start
-  shell: >
+  shell: |
     while pcs status xml |
         xmllint --xpath '//resource[@id = "{{item}}" and @role = "Stopped"]' -; do
       sleep 1

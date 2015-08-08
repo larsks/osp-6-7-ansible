@@ -22,7 +22,7 @@
     # This waits until there is no longer a "galera" resource running
     # on the local node.
     - name: wait for galera to stop
-      shell: >
+      shell: |
         while pcs status xml |
             xmllint --xpath '//resource[@id = "galera"]/node[@name="{{crm_node.stdout}}"]' -; do
           sleep 1
@@ -42,7 +42,7 @@
     # This waits for the galera *on this host* to reach the "Master"
     # role.
     - name: wait for galera to start
-      shell: >
+      shell: |
         while ! pcs status xml |
             xmllint --xpath '//resource[@id = "galera" and @role = "Master"]/node[@name="{{crm_node.stdout}}"]' -; do
           sleep 1

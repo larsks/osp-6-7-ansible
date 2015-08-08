@@ -115,7 +115,7 @@
     - name: start keystone resources
       command: systemctl start openstack-keystone
     - name: wait for keystone to start
-      shell: >
+      shell: |
         while ! crm_resource -r keystone-clone --force-check; do
           sleep 1
         done

@@ -3,18 +3,26 @@
 # This looks for resources matching the given `resource_prefix` string, calls
 # `pcs disable` on the result, and then waits for those resources to exit the
 # `Started` role.
-- name: stop {{resource_prefix}} resources
-  shell: >
+- name: get list of {{resource_prefix}} resources
+  shell: |
     pcs status xml |
     xmllint --xpath '/crm_mon/resources/*[starts-with(@id, "{{resource_prefix}}")]/@id' -  |
     tr ' ' '\n' |
     cut -f2 -d'"' |
-    xargs -n1 pcs resource disable
+    grep -v '^$'
+  run_once: true
+  register: resources
+- name: disable {{resource_prefix}} resource
+  command: pcs resource disable {{item}}
+  with_items: resources.stdout_lines
+  when: resource_exclude is not defined or resource_exclude not in item
   run_once: true
 - name: wait for {{resource_prefix}} resources to stop
-  shell: >
+  shell: |
     while pcs status xml |
-        xmllint --xpath '//resource[starts-with(@id, "{{resource_prefix}}") and @role = "Started"]' -; do
+        xmllint --xpath '//resource[@id = "{{item}}" and @role = "Started"]' -; do
       sleep 1
     done
   run_once: true
+  with_items: resources.stdout_lines
+  when: resource_exclude is not defined or resource_exclude not in item

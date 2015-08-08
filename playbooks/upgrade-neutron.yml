@@ -10,6 +10,7 @@
   roles:
     - role: pcs-stop-prefix
       resource_prefix: neutron
+      resource_exclude: cleanup
 
 - hosts: controller
   tags:
@@ -90,3 +91,4 @@
   roles:
     - role: pcs-start-prefix
       resource_prefix: neutron
+      resource_exclude: cleanup
