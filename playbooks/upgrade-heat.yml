@@ -40,9 +40,9 @@
     - enable
     - enable-heat
   roles:
-    - role: pcs-start-prefix
-      resource_prefix: heat
     - role: pcs-start
       service: heat
       resources:
         - openstack-heat-engine
+    - role: pcs-start-prefix
+      resource_prefix: heat
