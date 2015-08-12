@@ -787,8 +787,12 @@ Lastly we restart Nova services on the controllers.
           resource_prefix: openstack-nova
 # Upgrade Neutron
 
-This playbook updates OpenStack Neutron, using the same process that
-we used for Glance.
+This playbook updates OpenStack Neutron, using a process that is
+largely similar to what we used for Glance.  However, for Neutron we
+need to ensure that Pacemaker doesn't run the `neutron-ovs-cleanup`
+and `neutron-netns-cleanup` scripts, which will interrupt network
+connectivity to any running Nova servers, so we `pcs unmanage` the
+corresponding resources first.
 
 
 
@@ -896,6 +900,8 @@ releases.
     
 ## Restart Neutron services
 
+We restart all of the Neutron services, and we return the cleanup
+resources to management by Pacemaker.
 
 
 <!-- break -->
