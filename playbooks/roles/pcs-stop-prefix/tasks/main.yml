@@ -15,14 +15,14 @@
 - name: disable {{resource_prefix}} resource
   command: pcs resource disable {{item}}
   with_items: resources.stdout_lines
-  when: resource_exclude is not defined or resource_exclude not in item
+  when: item not in resource_exclude
   run_once: true
 - name: wait for {{resource_prefix}} resources to stop
   shell: |
     while pcs status xml |
-        xmllint --xpath '//resource[@id = "{{item}}" and @role = "Started"]' -; do
+        xmllint --xpath '/crm_mon/resources/*[@id = "{{item}}" and (@role != "Stopped" or resource/@role != "Stopped")]' -; do
       sleep 1
     done
   run_once: true
   with_items: resources.stdout_lines
-  when: resource_exclude is not defined or resource_exclude not in item
+  when: item not in resource_exclude
