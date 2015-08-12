@@ -39,23 +39,74 @@
 
 # ## Bugfixes
 #
+# ### BZ 1250156: openstack-neutron depends on python-oslo-config
+#
+# - <https://bugzilla.redhat.com/show_bug.cgi?id=1250156>
+#
 - hosts: controller
   tags:
     - bugfix
     - bz1250156
-    - bz1250160
-    - bz1250164
-    - bz1250166
-    - bz1250219
-    - packages
   tasks:
-    - name: "BZ 1250156,1250160,1250164,1250166,1250219: fix neutron dependencies"
+    - name: "BZ 1250156: openstack-neutron depends on python-oslo-config"
+      yum: name={{item}} state=latest
+      with_items:
+        - python-oslo-config
+
+# ### BZ 1250160: openstack-neutron depends on python-oslo-i18n
+#
+# - <https://bugzilla.redhat.com/show_bug.cgi?id=1250160>
+#
+- hosts: controller
+  tags:
+    - bugfix
+    - bz1250160
+  tasks:
+    - name: "BZ 1250160: openstack-neutron depends on python-oslo-i18n"
+      yum: name={{item}} state=latest
+      with_items:
+        - python-oslo-i18n
+
+# ### BZ 1250164: openstack-neutron depends on python-oslo-db
+#
+# - <https://bugzilla.redhat.com/show_bug.cgi?id=1250164>
+#
+- hosts: controller
+  tags:
+    - bugfix
+    - bz1250164
+  tasks:
+    - name: "BZ 1250164: openstack-neutron depends on python-oslo-db"
       yum: name={{item}} state=latest
       with_items:
         - python-oslo-db
+
+# ### BZ 1250166: openstack-neutron depends on python-oslo-messaging
+#
+# - <https://bugzilla.redhat.com/show_bug.cgi?id=1250166>
+#
+- hosts: controller
+  tags:
+    - bugfix
+    - bz1250166
+  tasks:
+    - name: "BZ 1250166: openstack-neutron depends on python-oslo-messaging"
+      yum: name={{item}} state=latest
+      with_items:
         - python-oslo-messaging
-        - python-oslo-i18n
-        - python-oslo-config
+
+# ### BZ 1246599: neutron requires oslo_rootwrap
+#
+# - <https://bugzilla.redhat.com/show_bug.cgi?id=1246599>
+#
+- hosts: controller
+  tags:
+    - bugfix
+    - bz1246599
+  tasks:
+    - name: "BZ 1246599: neutron requires oslo_rootwrap"
+      yum: name={{item}} state=latest
+      with_items:
         - python-oslo-rootwrap
 
 # ## Reload systemd
