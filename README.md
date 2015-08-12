@@ -11,6 +11,6 @@ available:
   a time on the controllers, and then upgrading compute nodes
   individually.
 
-[1]: all-in-one-md
+[1]: all-in-one.md
 [2]: service-by-service.md
 
