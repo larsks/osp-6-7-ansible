@@ -50,7 +50,7 @@ the `Stopped` role.
         - check
       tasks:
         - name: wait for all pacemaker resources to start
-          shell: >
+          shell: |
             while pcs status xml |
                 xmllint --xpath '//resource[@role = "Stopped"]' -; do
               sleep 1
@@ -84,7 +84,7 @@ more granular plays.
         # This waits until there is no longer a "galera" resource running
         # on the local node.
         - name: wait for galera to stop
-          shell: >
+          shell: |
             while pcs status xml |
                 xmllint --xpath '//resource[@id = "galera"]/node[@name="{{crm_node.stdout}}"]' -; do
               sleep 1
@@ -104,7 +104,7 @@ more granular plays.
         # This waits for the galera *on this host* to reach the "Master"
         # role.
         - name: wait for galera to start
-          shell: >
+          shell: |
             while ! pcs status xml |
                 xmllint --xpath '//resource[@id = "galera" and @role = "Master"]/node[@name="{{crm_node.stdout}}"]' -; do
               sleep 1
@@ -325,7 +325,7 @@ Pacemaker.
         - name: start keystone resources
           command: systemctl start openstack-keystone
         - name: wait for keystone to start
-          shell: >
+          shell: |
             while ! crm_resource -r keystone-clone --force-check; do
               sleep 1
             done
@@ -447,12 +447,12 @@ we used for Glance.
         - enable
         - enable-heat
       roles:
-        - role: pcs-start-prefix
-          resource_prefix: heat
         - role: pcs-start
           service: heat
           resources:
             - openstack-heat-engine
+        - role: pcs-start-prefix
+          resource_prefix: heat
 # Upgrade Cinder
 
 This playbook updates OpenStack Cinder, using the same process that
@@ -798,9 +798,19 @@ we used for Glance.
       tags:
         - disable
         - disable-neutron
+      pre_tasks:
+        - name: prevent pacemaker from managing cleanup actions
+          command: pcs resource unmanage {{item}}
+          with_items:
+            - neutron-ovs-cleanup-clone
+            - neutron-netns-cleanup-clone
       roles:
         - role: pcs-stop-prefix
           resource_prefix: neutron
+          resource_exclude:
+            - neutron-ovs-cleanup-clone
+            - neutron-netns-cleanup-clone
+            - neutron-scale-clone
     
     - hosts: controller
       tags:
@@ -894,13 +904,19 @@ releases.
       tags:
         - enable
         - enable-neutron
-      pre_tasks:
-        - name: kill dnsmasq
-          command: pkill dnsmasq
-          ignore_errors: true
       roles:
         - role: pcs-start-prefix
           resource_prefix: neutron
+          resource_exclude:
+            - neutron-ovs-cleanup-clone
+            - neutron-netns-cleanup-clone
+            - neutron-scale-clone
+      tasks:
+        - name: allow pacemaker to manage cleanup actions
+          command: pcs resource manage {{item}}
+          with_items:
+            - neutron-ovs-cleanup-clone
+            - neutron-netns-cleanup-clone
 # Upgrade Horizon
 
 This playbook upgrades OpenStack Horizon.
