@@ -7,10 +7,19 @@
   tags:
     - disable
     - disable-neutron
+  pre_tasks:
+    - name: prevent pacemaker from managing cleanup actions
+      command: pcs resource unmanage {{item}}
+      with_items:
+        - neutron-ovs-cleanup-clone
+        - neutron-netns-cleanup-clone
   roles:
     - role: pcs-stop-prefix
       resource_prefix: neutron
-      resource_exclude: cleanup
+      resource_exclude:
+        - neutron-ovs-cleanup-clone
+        - neutron-netns-cleanup-clone
+        - neutron-scale-clone
 
 - hosts: controller
   tags:
@@ -84,11 +93,16 @@
   tags:
     - enable
     - enable-neutron
-  pre_tasks:
-    - name: kill dnsmasq
-      command: pkill dnsmasq
-      ignore_errors: true
   roles:
     - role: pcs-start-prefix
       resource_prefix: neutron
-      resource_exclude: cleanup
+      resource_exclude:
+        - neutron-ovs-cleanup-clone
+        - neutron-netns-cleanup-clone
+        - neutron-scale-clone
+  tasks:
+    - name: allow pacemaker to manage cleanup actions
+      command: pcs resource manage {{item}}
+      with_items:
+        - neutron-ovs-cleanup-clone
+        - neutron-netns-cleanup-clone
