@@ -140,7 +140,6 @@
         sed -i '{{item}}' /usr/share/neutron/rootwrap/dhcp.filters
       with_items:
         - '/^dnsmasq:/ s/: .*/: CommandFilter, dnsmasq, root/'
-      run_once: true
 
 # ## Restart Neutron services
 #
