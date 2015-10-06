@@ -109,6 +109,34 @@
       with_items:
         - python-oslo-rootwrap
 
+# ### BZ 1268425:  OSP-7 neutron packages split out service plugins (vpnaas,
+#     lbaas) in a way that breaks package upgrades
+#
+# - <https://bugzilla.redhat.com/show_bug.cgi?id=1268425>
+#
+- hosts: controller
+  tags:
+    - bugfix
+    - bz1268425
+  tasks:
+    - name: check for enabled neutron service plugins
+      command: >
+        crudini --get /etc/neutron/neutron.conf
+        DEFAULT service_plugins
+      register: service_plugins
+    - name: comment out service_providers in neutron.conf
+      command: sed -i '/^service_provider/ s/^/#/' /etc/neutron/neutron.conf
+    - name: install packages for enabled neutron services
+      yum: name={{item.package}} state=latest
+      when: item.match in service_plugins.stdout.split(',')
+      with_items:
+        - package: openstack-neutron-lbaas
+          match: neutron.services.loadbalancer.plugin.LoadBalancerPlugin
+        - package: openstack-neutron-fwaas
+          match: neutron.services.firewall.fwaas_plugin.FirewallPlugin
+        - package: openstack-neutron-vpnaas
+          match: neutron.services.vpn.plugin.VPNDriverPlugin
+
 # ## Reload systemd
 #
 # Package updates may include new systemd unit files, so we make sure
